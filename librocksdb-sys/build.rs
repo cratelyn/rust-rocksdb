@@ -360,7 +360,7 @@ fn main() {
         build_rocksdb();
     } else {
         let target = env::var("TARGET").unwrap();
-        // according to https://github.com/alexcrichton/cc-rs/blob/master/src/lib.rs#L2189
+        // according to https://github.com/alexcrichton/cc-rs/blob/master/src/lib.rs#L2095
         if target.contains("apple") || target.contains("freebsd") || target.contains("openbsd") {
             println!("cargo:rustc-link-lib=dylib=c++");
         } else if target.contains("linux") {
