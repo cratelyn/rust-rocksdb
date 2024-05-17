@@ -355,6 +355,17 @@ fn update_submodules() {
     }
 }
 
+/// Links against the C++ standard library.
+fn link_to_cpp_std() {
+    let target = env::var("TARGET").unwrap();
+    // according to https://github.com/alexcrichton/cc-rs/blob/master/src/lib.rs#L2095
+    if target.contains("apple") || target.contains("freebsd") || target.contains("openbsd") {
+        println!("cargo:rustc-link-lib=dylib=c++");
+    } else if target.contains("linux") {
+        println!("cargo:rustc-link-lib=dylib=stdc++");
+    }
+}
+
 fn main() {
     if !Path::new("rocksdb/AUTHORS").exists() {
         update_submodules();
@@ -366,13 +377,7 @@ fn main() {
         fail_on_empty_directory("rocksdb");
         build_rocksdb();
     } else {
-        let target = env::var("TARGET").unwrap();
-        // according to https://github.com/alexcrichton/cc-rs/blob/master/src/lib.rs#L2095
-        if target.contains("apple") || target.contains("freebsd") || target.contains("openbsd") {
-            println!("cargo:rustc-link-lib=dylib=c++");
-        } else if target.contains("linux") {
-            println!("cargo:rustc-link-lib=dylib=stdc++");
-        }
+        link_to_cpp_std();
     }
     if cfg!(feature = "snappy") && !try_to_find_and_link_lib("SNAPPY") {
         println!("cargo:rerun-if-changed=snappy/");
