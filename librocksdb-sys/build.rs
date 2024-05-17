@@ -1,3 +1,4 @@
+use std::ops::Not;
 use std::path::Path;
 use std::{env, fs, path::PathBuf, process::Command};
 
@@ -53,6 +54,9 @@ fn bindgen_rocksdb() {
 }
 
 fn build_rocksdb() {
+    /// The name of the compiled library.
+    const ARCHIVE: &str = "librocksdb.a";
+
     let target = env::var("TARGET").unwrap();
 
     let mut config = cc::Build::new();
@@ -267,7 +271,24 @@ fn build_rocksdb() {
 
     config.cpp(true);
     config.flag_if_supported("-std=c++17");
-    config.compile("librocksdb.a");
+
+    if env::var("OUT_DIR")
+        .map(PathBuf::from)
+        .unwrap()
+        .join(ARCHIVE)
+        .exists()
+        .not()
+    {
+        // Build rocksdb if it has not already been built.
+        config.compile(ARCHIVE);
+    } else {
+        // RocksDB has already been built. Add the output directory to the link search path, and
+        // link against the previously compiled archive and the C++ standard library.
+        let out_dir = env::var("OUT_DIR").unwrap();
+        println!("cargo:rustc-link-search=native={out_dir}");
+        println!("cargo:rustc-link-lib=static=rocksdb");
+        link_to_cpp_std();
+    }
 }
 
 fn build_snappy() {
