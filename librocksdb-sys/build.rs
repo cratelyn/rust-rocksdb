@@ -295,7 +295,13 @@ fn build_snappy() {
     config.compile("libsnappy.a");
 }
 
+/// Checks if a precompiled version of `lib_name` can be linked against.
+///
+/// This funtions returns `false` if an environment variable explicitly indicates that this
+/// library should be compiled. This function returns `true` If an environment variable indicates
+/// where the system copy of a library is found.
 fn try_to_find_and_link_lib(lib_name: &str) -> bool {
+    // Explicitly compile the library.
     println!("cargo:rerun-if-env-changed={lib_name}_COMPILE");
     if let Ok(v) = env::var(format!("{lib_name}_COMPILE")) {
         if v.to_lowercase() == "true" || v == "1" {
@@ -303,9 +309,9 @@ fn try_to_find_and_link_lib(lib_name: &str) -> bool {
         }
     }
 
+    // Link against a precompiled version of the library on the system.
     println!("cargo:rerun-if-env-changed={lib_name}_LIB_DIR");
     println!("cargo:rerun-if-env-changed={lib_name}_STATIC");
-
     if let Ok(lib_dir) = env::var(format!("{lib_name}_LIB_DIR")) {
         println!("cargo:rustc-link-search=native={lib_dir}");
         let mode = match env::var_os(format!("{lib_name}_STATIC")) {
@@ -315,6 +321,7 @@ fn try_to_find_and_link_lib(lib_name: &str) -> bool {
         println!("cargo:rustc-link-lib={}={}", mode, lib_name.to_lowercase());
         return true;
     }
+
     false
 }
 
