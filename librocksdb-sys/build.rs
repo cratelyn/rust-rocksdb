@@ -292,6 +292,9 @@ fn build_rocksdb() {
 }
 
 fn build_snappy() {
+    /// The name of the compiled library.
+    const ARCHIVE: &str = "libsnappy.a";
+
     let target = env::var("TARGET").unwrap();
     let endianness = env::var("CARGO_CFG_TARGET_ENDIAN").unwrap();
     let mut config = cc::Build::new();
@@ -320,7 +323,24 @@ fn build_snappy() {
     config.file("snappy/snappy-sinksource.cc");
     config.file("snappy/snappy-c.cc");
     config.cpp(true);
-    config.compile("libsnappy.a");
+
+    if env::var("OUT_DIR")
+        .map(PathBuf::from)
+        .unwrap()
+        .join(ARCHIVE)
+        .exists()
+        .not()
+    {
+        // Build snappy if it has not already been built.
+        config.compile(ARCHIVE);
+    } else {
+        // Snappy has already been built. Add the output directory to the link search path, and
+        // link against the previously compiled archive and the C++ standard library.
+        let out_dir = env::var("OUT_DIR").unwrap();
+        println!("cargo:rustc-link-search=native={out_dir}");
+        println!("cargo:rustc-link-lib=static=snappy");
+        link_to_cpp_std();
+    }
 }
 
 /// Checks if a precompiled version of `lib_name` can be linked against.
